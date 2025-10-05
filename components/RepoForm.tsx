@@ -3,19 +3,19 @@ import React, { useState } from 'react';
 import PlusIcon from './icons/PlusIcon';
 import LoadingSpinner from './icons/LoadingSpinner';
 
-interface CodexFormProps {
-  onAddCodexEntry: (source: string, summary: string) => Promise<void>;
+interface RepoFormProps {
+  onAddRepoEntry: (source: string, summary: string) => Promise<void>;
   isLoading: boolean;
 }
 
-const CodexForm: React.FC<CodexFormProps> = ({ onAddCodexEntry, isLoading }) => {
+const RepoForm: React.FC<RepoFormProps> = ({ onAddRepoEntry, isLoading }) => {
   const [source, setSource] = useState('');
   const [summary, setSummary] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!source.trim() || !summary.trim() || isLoading) return;
-    onAddCodexEntry(source, summary).then(() => {
+    onAddRepoEntry(source, summary).then(() => {
       setSource('');
       setSummary('');
     });
@@ -28,11 +28,11 @@ const CodexForm: React.FC<CodexFormProps> = ({ onAddCodexEntry, isLoading }) => 
         className="bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 space-y-4"
       >
         <div>
-          <label htmlFor="codex-source" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="repo-source" className="block text-sm font-medium text-gray-300 mb-1">
             Source / Title
           </label>
           <input
-            id="codex-source"
+            id="repo-source"
             type="text"
             value={source}
             onChange={(e) => setSource(e.target.value)}
@@ -42,11 +42,11 @@ const CodexForm: React.FC<CodexFormProps> = ({ onAddCodexEntry, isLoading }) => 
           />
         </div>
         <div>
-          <label htmlFor="codex-summary" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="repo-summary" className="block text-sm font-medium text-gray-300 mb-1">
             Content / Summary
           </label>
           <input
-            id="codex-summary"
+            id="repo-summary"
             type="text"
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
@@ -65,7 +65,7 @@ const CodexForm: React.FC<CodexFormProps> = ({ onAddCodexEntry, isLoading }) => 
           ) : (
             <>
               <PlusIcon className="w-5 h-5 mr-2" />
-              Assimilate into Codex
+              Assimilate Knowledge
             </>
           )}
         </button>
@@ -74,4 +74,4 @@ const CodexForm: React.FC<CodexFormProps> = ({ onAddCodexEntry, isLoading }) => 
   );
 };
 
-export default CodexForm;
+export default RepoForm;

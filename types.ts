@@ -1,5 +1,5 @@
 
-export interface CodexEntry {
+export interface RepoEntry {
   id: string;
   source: string;
   summary: string;
@@ -21,4 +21,5 @@ export interface ChatMessage {
 export enum AppView {
   REPOS = 'repos',
   CHAT = 'chat',
+  SYSTEM = 'system',
 }

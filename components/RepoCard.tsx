@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { CodexEntry } from '../types';
+import { RepoEntry } from '../types';
 
-interface CodexCardProps {
-  entry: CodexEntry;
+interface RepoCardProps {
+  entry: RepoEntry;
 }
 
-const CodexCard: React.FC<CodexCardProps> = ({ entry }) => {
+const RepoCard: React.FC<RepoCardProps> = ({ entry }) => {
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-2xl p-5 transform transition-transform duration-300 hover:scale-105 hover:border-cyan-500/50">
       <div className="flex items-start space-x-4">
@@ -31,4 +31,4 @@ const CodexCard: React.FC<CodexCardProps> = ({ entry }) => {
   );
 };
 
-export default CodexCard;
+export default RepoCard;

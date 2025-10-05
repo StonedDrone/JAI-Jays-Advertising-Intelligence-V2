@@ -1,5 +1,4 @@
-// FIX: Add type definitions for the Web Speech API to resolve TypeScript errors.
-// These types are not included in standard DOM typings.
+// Add type definitions for the Web Speech API to resolve TypeScript errors.
 interface SpeechRecognition extends EventTarget {
   lang: string;
   interimResults: boolean;
@@ -41,68 +40,44 @@ declare global {
 }
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage, MessageAuthor, RepoEntry } from '../types';
-import { chatWithAi } from '../services/geminiService';
+import { ChatMessage, MessageAuthor } from '../types';
+import { chatWithSystem } from '../services/geminiService';
 import BrainIcon from './icons/BrainIcon';
+import CodeIcon from './icons/CodeIcon';
 import LoadingSpinner from './icons/LoadingSpinner';
 import MicrophoneIcon from './icons/MicrophoneIcon';
-import SpeakerOnIcon from './icons/SpeakerOnIcon';
-import SpeakerOffIcon from './icons/SpeakerOffIcon';
 
-interface ChatViewProps {
-  repos: RepoEntry[];
-}
-
-const ChatView: React.FC<ChatViewProps> = ({ repos }) => {
+const SystemView: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [isTtsEnabled, setIsTtsEnabled] = useState(true);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  // Greet the user on initial load
+  useEffect(() => {
+    const init = async () => {
+        setIsLoading(true);
+        const initialMessage = await chatWithSystem([]);
+        setMessages([{
+            id: Date.now().toString(),
+            author: MessageAuthor.AI,
+            text: initialMessage
+        }]);
+        setIsLoading(false);
+    }
+    init();
+  }, [])
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
   
-  useEffect(() => {
-    const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
-    };
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-    
-    return () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        window.speechSynthesis.cancel();
-    }
-  }, []);
-
-  const speak = (text: string) => {
-    // FIX: Fixed a TypeScript error by adding parentheses to ensure correct operator precedence for the 'in' operator check.
-    if (!isTtsEnabled || !('speechSynthesis' in window) || !text) return;
-
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    const jaiVoice = voices.find(v => v.name === 'Google US English' && v.lang === 'en-US') ||
-                     voices.find(v => v.lang === 'en-US' && v.name.includes('Female')) ||
-                     voices.find(v => v.lang === 'en-US' && v.default);
-    
-    if (jaiVoice) {
-        utterance.voice = jaiVoice;
-    }
-    utterance.pitch = 1;
-    utterance.rate = 1;
-    window.speechSynthesis.speak(utterance);
-  }
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -117,9 +92,7 @@ const ChatView: React.FC<ChatViewProps> = ({ repos }) => {
     setInput('');
     setIsLoading(true);
 
-    const aiResponseText = await chatWithAi([...messages, userMessage], repos);
-    
-    speak(aiResponseText);
+    const aiResponseText = await chatWithSystem([...messages, userMessage]);
     
     const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -176,16 +149,16 @@ const ChatView: React.FC<ChatViewProps> = ({ repos }) => {
     
     recognition.start();
   };
-
-  const handleToggleTts = () => {
-    if (isTtsEnabled) {
-      window.speechSynthesis.cancel();
-    }
-    setIsTtsEnabled(!isTtsEnabled);
-  };
   
   return (
     <div className="w-full max-w-md mx-auto h-full flex flex-col bg-black">
+      <div className="p-4 text-center border-b border-gray-800">
+        <div className="flex items-center justify-center space-x-2 text-white">
+            <CodeIcon className="w-6 h-6 text-cyan-400" />
+            <h2 className="text-lg font-semibold">System Analysis</h2>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">Query JAI's internal architecture.</p>
+      </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex items-end gap-2 ${msg.author === MessageAuthor.USER ? 'justify-end' : 'justify-start'}`}>
@@ -197,7 +170,7 @@ const ChatView: React.FC<ChatViewProps> = ({ repos }) => {
             <div className={`max-w-xs md:max-w-sm px-4 py-2 rounded-2xl ${msg.author === MessageAuthor.USER 
                 ? 'bg-blue-600 text-white rounded-br-none' 
                 : 'bg-gray-800 text-gray-200 rounded-bl-none'}`}>
-              <p className="text-sm">{msg.text}</p>
+              <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
             </div>
           </div>
         ))}
@@ -220,18 +193,10 @@ const ChatView: React.FC<ChatViewProps> = ({ repos }) => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isListening ? "Listening..." : "Awaiting directive..."}
+            placeholder={isListening ? "Listening..." : "Query system architecture..."}
             className="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             disabled={isLoading}
           />
-          <button
-            type="button"
-            onClick={handleToggleTts}
-            className={`p-2 rounded-full transition-colors ${isTtsEnabled ? 'text-cyan-400 bg-gray-800' : 'text-gray-500 bg-gray-800 hover:text-white'}`}
-            aria-label={isTtsEnabled ? 'Disable text-to-speech' : 'Enable text-to-speech'}
-          >
-            {isTtsEnabled ? <SpeakerOnIcon className="w-6 h-6" /> : <SpeakerOffIcon className="w-6 h-6" />}
-          </button>
           <button
             type="button"
             onClick={handleToggleListening}
@@ -252,4 +217,4 @@ const ChatView: React.FC<ChatViewProps> = ({ repos }) => {
   );
 };
 
-export default ChatView;
+export default SystemView;

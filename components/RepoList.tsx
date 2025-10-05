@@ -1,17 +1,17 @@
 
 import React from 'react';
-import { CodexEntry } from '../types';
+import { RepoEntry } from '../types';
 import RepoCard from './RepoCard';
 
-interface CodexListProps {
-  entries: CodexEntry[];
+interface RepoListProps {
+  entries: RepoEntry[];
 }
 
-const CodexList: React.FC<CodexListProps> = ({ entries }) => {
+const RepoList: React.FC<RepoListProps> = ({ entries }) => {
   if (entries.length === 0) {
     return (
       <div className="text-center p-8 text-gray-500">
-        <p>The Codex is awaiting new directives.</p>
+        <p>The knowledge base is awaiting new directives.</p>
         <p className="text-sm">Add a new entry to enhance JAI's protocols.</p>
       </div>
     );
@@ -26,4 +26,4 @@ const CodexList: React.FC<CodexListProps> = ({ entries }) => {
   );
 };
 
-export default CodexList;
+export default RepoList;

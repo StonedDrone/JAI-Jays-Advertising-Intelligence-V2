@@ -4,31 +4,33 @@ import Header from './components/Header';
 import RepoForm from './components/RepoForm';
 import RepoList from './components/RepoList';
 import ChatView from './components/ChatView';
+import SystemView from './components/SystemView';
 import useLocalStorage from './hooks/useLocalStorage';
-import { assimilateCodexEntry } from './services/geminiService';
-import { CodexEntry, AppView } from './types';
+import { assimilateRepoEntry } from './services/geminiService';
+import { RepoEntry, AppView } from './types';
 import BrainIcon from './components/icons/BrainIcon';
 import ChatIcon from './components/icons/ChatIcon';
+import CodeIcon from './components/icons/CodeIcon';
 
 const App: React.FC = () => {
-  const [codexEntries, setCodexEntries] = useLocalStorage<CodexEntry[]>('jai-codex-entries', []);
+  const [repoEntries, setRepoEntries] = useLocalStorage<RepoEntry[]>('jai-repo-entries', []);
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<AppView>(AppView.REPOS);
 
-  const handleAddCodexEntry = async (source: string, summary: string) => {
+  const handleAddRepoEntry = async (source: string, summary: string) => {
     setIsLoading(true);
     try {
-      const newProtocol = await assimilateCodexEntry(source, summary);
-      const newEntry: CodexEntry = {
+      const newProtocol = await assimilateRepoEntry(source, summary);
+      const newEntry: RepoEntry = {
         id: new Date().toISOString(),
         source,
         summary,
         protocolName: newProtocol.protocolName,
         capabilityDescription: newProtocol.capabilityDescription,
       };
-      setCodexEntries(prevEntries => [newEntry, ...prevEntries]);
+      setRepoEntries(prevEntries => [newEntry, ...prevEntries]);
     } catch (error) {
-      console.error("Failed to add codex entry:", error);
+      console.error("Failed to add repo entry:", error);
     } finally {
       setIsLoading(false);
     }
@@ -37,15 +39,17 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case AppView.CHAT:
-        return <ChatView codex={codexEntries} />;
+        return <ChatView repos={repoEntries} />;
+      case AppView.SYSTEM:
+        return <SystemView />;
       case AppView.REPOS:
       default:
         return (
           <>
-            <RepoForm onAddCodexEntry={handleAddCodexEntry} isLoading={isLoading} />
+            <RepoForm onAddRepoEntry={handleAddRepoEntry} isLoading={isLoading} />
             <div className="w-full max-w-md mx-auto px-4 pb-4">
               <h2 className="text-lg font-semibold text-gray-300 mb-3">Integrated Protocols</h2>
-              <RepoList entries={codexEntries} />
+              <RepoList entries={repoEntries} />
             </div>
           </>
         );
@@ -71,7 +75,7 @@ const App: React.FC = () => {
             className={`flex flex-col items-center px-4 py-2 rounded-lg transition-colors ${view === AppView.REPOS ? 'text-cyan-400' : 'text-gray-500 hover:text-cyan-400'}`}
           >
             <BrainIcon className="w-6 h-6" />
-            <span className="text-xs mt-1">Codex</span>
+            <span className="text-xs mt-1">Repos</span>
           </button>
           <button
             onClick={() => setView(AppView.CHAT)}
@@ -79,6 +83,13 @@ const App: React.FC = () => {
           >
             <ChatIcon className="w-6 h-6" />
             <span className="text-xs mt-1">Chat</span>
+          </button>
+           <button
+            onClick={() => setView(AppView.SYSTEM)}
+            className={`flex flex-col items-center px-4 py-2 rounded-lg transition-colors ${view === AppView.SYSTEM ? 'text-cyan-400' : 'text-gray-500 hover:text-cyan-400'}`}
+          >
+            <CodeIcon className="w-6 h-6" />
+            <span className="text-xs mt-1">System</span>
           </button>
         </div>
       </nav>
