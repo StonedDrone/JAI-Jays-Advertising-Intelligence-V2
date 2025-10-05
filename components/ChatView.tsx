@@ -1,8 +1,51 @@
+// FIX: Add type definitions for the Web Speech API to resolve TypeScript errors.
+// These types are not included in standard DOM typings.
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  interimResults: boolean;
+  onstart: () => void;
+  onend: () => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  readonly [index: number]: SpeechRecognitionAlternative;
+  readonly length: number;
+}
+
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, MessageAuthor, CodexEntry } from '../types';
 import { chatWithAi } from '../services/geminiService';
 import BrainIcon from './icons/BrainIcon';
 import LoadingSpinner from './icons/LoadingSpinner';
+import MicrophoneIcon from './icons/MicrophoneIcon';
 
 interface ChatViewProps {
   codex: CodexEntry[];
@@ -12,6 +55,8 @@ const ChatView: React.FC<ChatViewProps> = ({ codex }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -47,6 +92,47 @@ const ChatView: React.FC<ChatViewProps> = ({ codex }) => {
     setMessages(prev => [...prev, aiMessage]);
     setIsLoading(false);
   };
+
+  const handleToggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Apologies, Captain. Voice recognition is not supported by this terminal.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Voice recognition error:', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join('');
+      setInput(transcript);
+    };
+    
+    recognition.start();
+  };
   
   return (
     <div className="w-full max-w-md mx-auto h-full flex flex-col bg-black">
@@ -58,7 +144,6 @@ const ChatView: React.FC<ChatViewProps> = ({ codex }) => {
                   <BrainIcon className="w-5 h-5 text-white" />
               </div>
             )}
-            {/* FIX: Added missing colon in ternary operator for className. */}
             <div className={`max-w-xs md:max-w-sm px-4 py-2 rounded-2xl ${msg.author === MessageAuthor.USER 
                 ? 'bg-blue-600 text-white rounded-br-none' 
                 : 'bg-gray-800 text-gray-200 rounded-bl-none'}`}>
@@ -85,10 +170,19 @@ const ChatView: React.FC<ChatViewProps> = ({ codex }) => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Awaiting directive..."
+            placeholder={isListening ? "Listening..." : "Awaiting directive..."}
             className="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             disabled={isLoading}
           />
+          <button
+            type="button"
+            onClick={handleToggleListening}
+            disabled={isLoading}
+            className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:text-white bg-gray-800'}`}
+            aria-label={isListening ? 'Stop listening' : 'Start listening'}
+          >
+            <MicrophoneIcon className="w-6 h-6" />
+          </button>
           <button type="submit" disabled={isLoading || !input.trim()} className="bg-blue-600 rounded-full p-2 text-white disabled:bg-gray-600 disabled:cursor-not-allowed">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
